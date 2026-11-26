@@ -1,0 +1,331 @@
+:root {
+  --asphalt: #2a2d31;      /* тло */
+  --asphalt-2: #33373c;    /* панелі */
+  --asphalt-3: #43484f;    /* межі, ховер */
+  --kerb: #9ba1a8;         /* другорядний текст */
+  --marking: #eeede6;      /* основний текст, як дорожня розмітка */
+  --sign: #f5c518;         /* обрана машина, рамки */
+  --cone: #f08a4b;         /* низька впевненість */
+  --plate-blue: #2f6fe0;   /* «у кадрі» */
+  --alarm: #ff5a52;        /* номер у базі розшуку */
+  --ui: "Onest", system-ui, sans-serif;
+  --din: "Barlow Semi Condensed", "Arial Narrow", sans-serif;
+  --side-w: clamp(300px, 27vw, 380px);
+  --controls-h: 64px;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  background: var(--asphalt);
+  color: var(--marking);
+  font: 400 14px/1.45 var(--ui);
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--sign); outline-offset: 2px; }
+
+/* ── плеєр зліва, список машин справа ───── */
+.layout {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--side-w);
+  gap: 16px;
+  padding: 16px 20px;
+  height: 100vh;
+  min-height: 0;
+}
+.player { display: flex; flex-direction: column; min-width: 0; }
+/* відео займає всю ліву колонку, але не вище, ніж дозволяє вікно (місце під керування лишаємо) */
+.stage {
+  --ar: 16 / 9; /* app.js ставить пропорції самого відео */
+  position: relative;
+  width: min(100%, calc((100vh - var(--controls-h) - 40px) * var(--ar)));
+  aspect-ratio: var(--ar);
+  margin: 0 auto;
+  background: #000;
+  border-radius: 6px;
+  overflow: hidden;
+}
+.stage video { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.stage-hit { position: absolute; inset: 0; background: none; border: 0; padding: 0; }
+.stage-hit:focus-visible { outline-offset: -3px; }
+
+.overlay { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; opacity: 0; transition: opacity .15s; }
+.overlay.on { opacity: 1; }
+.dim { fill: rgba(20, 22, 25, .5); }
+.box { fill: none; stroke: var(--sign); vector-effect: non-scaling-stroke; }
+.box--car { stroke-width: 2.5; }
+.box--plate { stroke-width: 1.5; }
+
+.tag {
+  position: absolute;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(calc(-100% - 6px));
+  transition: opacity .15s;
+}
+.tag.on { opacity: 1; }
+.tag.inside { transform: translateY(6px); }
+
+/* ── керування ─────────────────────────── */
+.controls {
+  height: var(--controls-h);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: min(100%, calc((100vh - var(--controls-h) - 40px) * 16 / 9));
+  margin: 0 auto;
+}
+.icon-btn {
+  width: 36px; height: 36px; flex: none;
+  display: grid; place-items: center;
+  border: 0; border-radius: 50%;
+  background: var(--marking); color: var(--asphalt);
+}
+.icon-btn svg { width: 18px; height: 18px; fill: currentColor; }
+.icon-btn .i-pause, .playing .icon-btn .i-play { display: none; }
+.playing .icon-btn .i-pause { display: block; }
+.tc { font: 600 16px/1 var(--din); font-variant-numeric: tabular-nums; min-width: 34px; }
+.tc--dim { color: var(--kerb); }
+
+.timeline {
+  position: relative;
+  flex: 1;
+  min-height: 44px;
+  cursor: pointer;
+  touch-action: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding-bottom: 8px;
+}
+.timeline:focus-visible { outline-offset: 0; border-radius: 4px; }
+.lanes { position: relative; margin-bottom: 4px; }
+.lane-seg {
+  position: absolute;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--asphalt-3);
+  border: 0; padding: 0;
+}
+.lane-seg:hover { background: var(--kerb); }
+.lane-seg.in { background: var(--plate-blue); }
+.lane-seg.sel { background: var(--sign); }
+.lane-seg i { position: absolute; top: -2px; width: 2px; height: 9px; margin-left: -1px; background: inherit; filter: brightness(1.4); border-radius: 1px; }
+.track { height: 4px; border-radius: 2px; background: var(--asphalt-3); overflow: hidden; }
+.fill { height: 100%; width: 0; background: var(--marking); }
+.head {
+  position: absolute; bottom: 4px; width: 2px; margin-left: -1px; top: 0;
+  background: var(--marking); pointer-events: none; left: 0;
+}
+.head::after {
+  content: ""; position: absolute; bottom: -2px; left: -5px;
+  width: 12px; height: 12px; border-radius: 50%; background: var(--marking);
+}
+
+/* ── номерний знак ─────────────────────── */
+.plate {
+  display: inline-flex;
+  align-items: stretch;
+  height: 1.55em;
+  background: #fbfbf8;
+  color: #16181b;
+  border: 1.5px solid #16181b;
+  border-radius: .18em;
+  overflow: hidden;
+  font: 600 20px/1 var(--din);
+  white-space: nowrap;
+  vertical-align: middle;
+}
+.plate-band {
+  width: .95em;
+  flex: none;
+  background: #1f4fbf;
+  color: #fff;
+  font-size: .38em;
+  font-weight: 700;
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+  padding-bottom: .3em;
+  gap: .4em;
+}
+.plate-band i { width: 1.5em; height: 1em; background: linear-gradient(#2f6fe0 50%, #ffd500 50%); border-radius: 1px; }
+.plate-band--eu { background: #003399; justify-content: center; padding: 0; width: 1.2em; }
+.plate-num { padding: 0 .3em; display: flex; align-items: center; letter-spacing: .02em; }
+.plate--yellow { background: #f2c200; }
+.plate--low { border-style: dashed; border-color: var(--cone); box-shadow: 0 0 0 1px var(--cone); }
+.plate--none {
+  background: transparent; color: var(--kerb);
+  border: 1.5px dashed var(--asphalt-3);
+  font: 500 13px/1 var(--ui);
+  padding: 0 .7em;
+  align-items: center;
+}
+.conf-low { color: var(--cone) !important; }
+/* «номер не прочитано» має свій розмір незалежно від контексту */
+.card .plate.plate--none, .ins-plate .plate.plate--none, .tag .plate.plate--none { font: 500 13px/1 var(--ui); }
+.ins-plate .plate.plate--none { font-size: 15px; height: 40px; }
+.tag .plate.plate--none { background: rgba(20, 22, 25, .85); color: var(--marking); border-color: transparent; height: 26px; }
+.conf-badge { font: 600 13px/1 var(--din); color: var(--cone); margin-left: 8px; font-variant-numeric: tabular-nums; }
+.tag .plate { font-size: 17px; box-shadow: 0 2px 10px rgba(0, 0, 0, .45); }
+.card-plate { display: flex; align-items: center; min-height: 30px; }
+
+/* ── подробиці про вибрану машину (розгортаються під її рядком у списку) ── */
+.inspector {
+  padding: 4px 8px 14px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.inspector[hidden] { display: none; }
+.ins-plate .plate { font-size: 34px; }
+.ins-conf { margin: -6px 0 0; display: flex; justify-content: space-between; color: var(--kerb); font-size: 13px; }
+.ins-conf b { color: var(--marking); font-weight: 600; }
+.ins-crop { margin: 0; }
+.ins-crop img, .ins-car img {
+  display: block; width: 100%; border-radius: 4px; background: #000;
+  image-rendering: auto;
+}
+.ins-car { margin: 0; }
+.swatch { display: inline-block; width: 11px; height: 11px; border-radius: 50%; background: var(--c); box-shadow: inset 0 0 0 1px rgba(255,255,255,.35); margin-right: 6px; vertical-align: -1px; }
+.btn {
+  border: 1.5px solid var(--asphalt-3);
+  background: none;
+  border-radius: 6px;
+  padding: 8px 12px;
+  text-align: left;
+}
+.btn:hover { border-color: var(--kerb); }
+
+/* ── список машин у правій панелі ──────── */
+.side {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--asphalt-2);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.side-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 12px 12px 10px;
+  border-bottom: 1px solid var(--asphalt-3);
+}
+.count { margin: 0; font-weight: 600; flex: 1; }
+.seg { display: flex; background: var(--asphalt); border-radius: 6px; padding: 2px; }
+.seg button { border: 0; background: none; padding: 5px 12px; border-radius: 4px; color: var(--kerb); }
+.seg button[aria-pressed="true"] { background: var(--asphalt-3); color: var(--marking); }
+.nav { margin-left: auto; display: flex; gap: 6px; }
+.nav-btn { border: 0; background: var(--asphalt); border-radius: 6px; padding: 6px 10px; display: flex; align-items: center; }
+.nav-btn:hover { background: var(--asphalt-3); }
+.nav-btn:disabled { opacity: .4; cursor: default; }
+kbd {
+  font: 600 12px/1 var(--din);
+  border: 1px solid var(--kerb);
+  border-radius: 3px;
+  padding: 2px 5px;
+  color: var(--kerb);
+}
+.hint { margin: 0; padding: 10px 14px 0; color: var(--kerb); font-size: 13px; line-height: 1.5; }
+.hint[hidden] { display: none; }
+
+.list {
+  list-style: none; margin: 0; padding: 8px;
+  display: flex; flex-direction: column; gap: 4px;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  scrollbar-color: var(--asphalt-3) transparent;
+}
+.list > li { border-radius: 8px; }
+.list > li:has(.inspector) { background: var(--asphalt); box-shadow: 0 0 0 2px var(--sign); }
+.card {
+  position: relative;
+  width: 100%;
+  display: grid;
+  grid-template-columns: 104px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 6px;
+  border: 0; border-radius: 8px;
+  background: none;
+  text-align: left;
+  overflow: hidden;
+}
+.card:hover { background: var(--asphalt-3); }
+.card .thumb { display: block; width: 100%; aspect-ratio: 16 / 9; border-radius: 4px; overflow: hidden; background: #000; }
+.card .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.card-body { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.card .plate { font-size: 18px; }
+.card .meta { display: flex; gap: 10px; align-items: baseline; color: var(--kerb); font-size: 13px; white-space: nowrap; }
+.card .meta .num { font: 600 15px/1 var(--din); color: var(--marking); font-variant-numeric: tabular-nums; }
+.pass { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; }
+.pass i { display: block; height: 100%; width: 0; background: var(--plate-blue); }
+.card.in { background: #2f3846; }
+.card[aria-current="true"] { background: none; }
+
+/* ── адаптив: вузьке вікно — список під відео ── */
+@media (max-width: 1000px) {
+  .layout { grid-template-columns: minmax(0, 1fr); height: auto; }
+  .stage, .controls { width: 100%; }
+  .side { max-height: 75vh; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .overlay, .tag { transition: none; }
+}
+
+/* ── автоматична розмітка (player/) ────── */
+.live { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.live.off { display: none; }
+.lb { fill: none; vector-effect: non-scaling-stroke; }
+.lb--car { stroke: var(--plate-blue); stroke-width: 2; }
+.lb--car.sel { stroke: var(--sign); stroke-width: 3; }
+.lb--plate { stroke: #4ade80; stroke-width: 2; }
+.lb-id { font: 600 30px var(--din); fill: #fff; paint-order: stroke; stroke: rgba(0, 0, 0, .75); stroke-width: 6px; }
+.lb-id.sel { fill: var(--sign); }
+
+.plate-img { display: block; height: 30px; max-width: 100%; border-radius: 3px; background: #000; }
+.tag { display: flex; align-items: center; gap: 6px; }
+.tag .plate-img { height: 34px; box-shadow: 0 2px 10px rgba(0, 0, 0, .45); }
+.tag-n { font: 600 17px/1 var(--din); background: var(--sign); color: #16181b; padding: 6px 7px; border-radius: 4px; }
+.thumb { position: relative; }
+.thumb-n { position: absolute; left: 5px; top: 4px; font: 600 15px/1 var(--din); background: rgba(20, 22, 25, .8); padding: 3px 6px; border-radius: 3px; }
+.ins-title { margin: 0; font: 600 22px/1.1 var(--din); }
+.ins-crop img { image-rendering: auto; }
+.toggle { display: flex; align-items: center; gap: 6px; color: var(--kerb); cursor: pointer; }
+.toggle input { accent-color: var(--sign); }
+
+/* табличка з прочитаним номером над рамкою машини на відео */
+.lp rect { fill: #fbfbf8; stroke: #16181b; stroke-width: 2; vector-effect: non-scaling-stroke; }
+.lp text { font: 600 34px var(--din); fill: #16181b; }
+.lp--low rect { stroke: var(--cone); stroke-width: 3; stroke-dasharray: 7 4; }
+.lp.sel rect { stroke: var(--sign); stroke-width: 3; stroke-dasharray: none; }
+
+/* перевірка в базі розшуку (wanted.js) */
+.wd--wanted { color: #fff; background: var(--alarm); border-radius: 3px; padding: 1px 6px; font-weight: 600; }
+.wd--was_wanted { color: var(--cone); font-weight: 600; }
+.ins-wanted {
+  display: flex; flex-direction: column; gap: 2px;
+  margin-top: -4px; padding: 8px 10px;
+  border-left: 3px solid var(--alarm); border-radius: 4px;
+  background: rgba(255, 90, 82, .12); font-size: 13px;
+}
+.ins-wanted b { color: var(--alarm); font-size: 14px; }
+.ins-wanted small { color: var(--kerb); margin-top: 4px; font-size: 12px; }
+.ins-wanted-organ { color: var(--kerb); }
+.ins-wanted--was_wanted { border-color: var(--cone); background: rgba(240, 138, 75, .12); }
+.ins-wanted--was_wanted b { color: var(--cone); }
+.lb--car.wanted { stroke: var(--alarm); stroke-width: 3; }
+.lp.wanted rect { fill: var(--alarm); stroke: #fff; stroke-dasharray: none; }
+.lp.wanted text { fill: #fff; }
+.lb--car.wanted.sel, .lp.wanted.sel rect { stroke: var(--sign); }
+/* вузька панель: кнопки фільтра й позначка розшуку переносяться цілими, а не ламають текст і не обрізаються */
+.seg { flex-wrap: wrap; }
+.seg button { white-space: nowrap; }
+.card .meta { flex-wrap: wrap; row-gap: 2px; }

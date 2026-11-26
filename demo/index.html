@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Машини на відео</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Onest:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../player/style.css">
+</head>
+<body>
+<main class="layout">
+  <section class="player" aria-label="Відео">
+    <div class="stage" id="stage">
+      <video id="video" src="clip.mp4" preload="auto" playsinline muted></video>
+      <!-- рамки всіх близьких машин і знайдених номерів на поточному кадрі -->
+      <svg class="live" id="live" viewBox="0 0 1920 1080" preserveAspectRatio="none" aria-hidden="true"></svg>
+      <svg class="overlay" id="overlay" viewBox="0 0 1920 1080" preserveAspectRatio="none" aria-hidden="true">
+        <defs>
+          <mask id="hole">
+            <rect width="1920" height="1080" fill="white"/>
+            <rect id="maskHole" fill="black" rx="6"/>
+          </mask>
+        </defs>
+        <rect class="dim" width="1920" height="1080" mask="url(#hole)"/>
+        <rect class="box box--car" id="carBox" rx="6"/>
+        <rect class="box box--plate" id="plateBox" rx="3"/>
+      </svg>
+      <div class="tag" id="tag" aria-hidden="true"></div>
+      <button class="stage-hit" id="stageHit" aria-label="Відтворити або поставити на паузу"></button>
+    </div>
+
+    <div class="controls">
+      <button class="icon-btn" id="play" aria-label="Відтворити">
+        <svg viewBox="0 0 24 24" class="i-play"><path d="M7 5v14l12-7z"/></svg>
+        <svg viewBox="0 0 24 24" class="i-pause"><path d="M7 5h4v14H7zM13 5h4v14h-4z"/></svg>
+      </button>
+      <span class="tc" id="tc">0:00</span>
+      <div class="timeline" id="timeline" role="slider" tabindex="0" aria-label="Позиція у відео" aria-valuemin="0">
+        <div class="lanes" id="lanes"></div>
+        <div class="track"><div class="fill" id="fill"></div></div>
+        <div class="head" id="head"></div>
+      </div>
+      <span class="tc tc--dim" id="dur">0:00</span>
+    </div>
+  </section>
+
+  <aside class="side" id="side" aria-label="Знайдені машини">
+    <div class="side-bar">
+      <p class="count" id="count"></p>
+      <label class="toggle"><input type="checkbox" id="showLive" checked> Рамки на відео</label>
+      <div class="seg" role="group" aria-label="Фільтр">
+        <button type="button" data-filter="all" aria-pressed="true">Усі</button>
+        <button type="button" data-filter="plate" aria-pressed="false">Номер прочитано</button>
+        <button type="button" data-filter="wanted" aria-pressed="false" hidden>У розшуку</button>
+      </div>
+      <div class="nav">
+        <button type="button" class="nav-btn" id="prev" aria-label="Попередня машина" title="Попередня машина"><kbd>←</kbd></button>
+        <button type="button" class="nav-btn" id="next" aria-label="Наступна машина" title="Наступна машина"><kbd>→</kbd></button>
+      </div>
+    </div>
+    <p class="hint" id="hint">Оберіть машину в списку або клацніть її рамку на паузі</p>
+    <ol class="list" id="strip"></ol>
+    <!-- подробиці про вибрану машину; скрипт переносить цей блок під її рядок у списку -->
+    <div class="inspector" id="inspector" aria-live="polite" hidden></div>
+  </aside>
+</main>
+
+<script src="data.js"></script>
+<!-- результат tools/wanted_check.py; без нього плеєр працює, просто без позначок розшуку -->
+<script src="wanted.js"></script>
+<script src="../player/app.js"></script>
+</body>
+</html>

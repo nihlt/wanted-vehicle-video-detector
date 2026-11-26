@@ -1,0 +1,11 @@
+# Перевірено на Windows 11, Python 3.13, RTX 4050 (CUDA 12.4).
+# torch із підтримкою CUDA ставте окремо, ДО цього файлу (звичайний `pip install torch` — лише процесор):
+#   pip install torch==2.6.0 torchvision==0.21.0 --index-url https://download.pytorch.org/whl/cu124
+ultralytics==8.4.202
+opencv-python==4.12.0.88
+numpy==2.2.6
+fast-plate-ocr==1.1.0
+open-image-models==0.6.0
+onnxruntime==1.20.1
+lap==0.5.14
+Pillow==12.2.0

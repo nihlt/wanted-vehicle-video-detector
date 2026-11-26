@@ -1,0 +1,38 @@
+# Відео: вихідне (з YouTube) і похідні кліпи в репо не кладемо — README пояснює, як їх отримати
+*.webm
+*.mp4
+*.mkv
+# ...крім хвилини для онлайн-демо (720p)
+!demo/clip.mp4
+
+# Python
+__pycache__/
+*.pyc
+# GPU-версія onnxruntime (~370 МБ), ставиться окремо: див. README
+tools/.ort_gpu/
+
+# Результати обробки: генеруються run.py і tools/process_clip.py
+runs/
+player/data.js
+player/crops/
+player/wanted.js
+player_full/
+player_full_gpu/
+*.log
+run.out
+*.tmp
+
+# Робочі дані датасету (кадри, вирізки, кеші, резервні копії) — генеруються скриптами з tools/
+dataset/*
+!dataset/README.md
+!dataset/labels_draft.json
+!dataset/clip/
+dataset/clip/*
+!dataset/clip/gt/
+dataset/clip/gt/*
+!dataset/clip/gt/labels.json
+!dataset/clip/gt/fragments.json
+!dataset/clip/gt/tracks_gt.json
+
+# Перший макет плеєра з ручною розміткою (етап 0, docs/GOAL.md): лишився локально, у репо його замінює demo/
+mock/
