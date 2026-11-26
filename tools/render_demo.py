@@ -1,11 +1,11 @@
 """Коротке демо для README: відрізок відео з рамками машин і прочитаними номерами, як у плеєрі.
 
-  python tools/render_demo.py player/data.js player/clip.mp4 docs/demo.gif --start 8 --dur 7
-  python tools/render_demo.py player/data.js player/clip.mp4 docs/demo.gif --pick 6   # сам знайде 6 с з найбільшою кількістю номерів (так зроблено docs/demo.gif)
+  python tools/render_demo.py player/data.js player/clip.mp4 docs/demo.webp --start 8 --dur 7
+  python tools/render_demo.py player/data.js player/clip.mp4 docs/demo.webp --pick 6   # сам знайде 6 с з найбільшою кількістю номерів (так зроблено docs/demo.webp)
 
 Рамки беруться з data.js (той самий файл, що читає плеєр) і так само, як у плеєрі, ставляться пропорційно
 часу між двома порахованими кадрами. Синя рамка — машина, зелена — номер, біла табличка — прочитаний номер
-(помаранчева рамка таблички — прочитано непевно). GIF кодує ffmpeg з власною палітрою (менший файл, чисті кольори).
+(помаранчева рамка таблички — прочитано непевно). Формат за розширенням: .webp (анімований, 6 с ≈ 1,8 МБ), .gif (палітра ffmpeg, той самий відрізок ≈ 6,4 МБ) або .mp4.
 """
 import argparse
 import bisect
@@ -110,12 +110,13 @@ def main():
     p = argparse.ArgumentParser()
     p.add_argument('data')
     p.add_argument('video')
-    p.add_argument('out', help='.gif (палітра ffmpeg) або .mp4')
+    p.add_argument('out', help='.webp (анімований, для README), .gif (палітра ffmpeg) або .mp4')
     p.add_argument('--start', type=float, default=0, help='з якої секунди відео')
     p.add_argument('--dur', type=float, default=7)
     p.add_argument('--pick', type=float, default=0, help='знайти найкращий відрізок такої довжини замість --start/--dur')
     p.add_argument('--width', type=int, default=720)
     p.add_argument('--fps', type=float, default=10)
+    p.add_argument('--quality', type=int, default=70, help='якість WebP 0–100')
     a = p.parse_args()
 
     data = load_data(a.data)
@@ -133,6 +134,9 @@ def main():
     if a.out.endswith('.gif'):
         vf = 'split[a][b];[a]palettegen=max_colors=128:stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=4:diff_mode=rectangle'
         enc = ['-vf', vf, '-loop', '0']
+    elif a.out.endswith('.webp'):
+        # анімований WebP: у README показується як GIF, але в кілька разів менший і без палітри
+        enc = ['-c:v', 'libwebp_anim', '-quality', str(a.quality), '-compression_level', '6', '-loop', '0']
     else:
         enc = ['-c:v', 'libx264', '-crf', '23', '-pix_fmt', 'yuv420p', '-movflags', '+faststart']
     ff = subprocess.Popen(['ffmpeg', '-v', 'error', '-y', '-f', 'rawvideo', '-pix_fmt', 'bgr24', '-s', f'{w_out}x{h_out}',
